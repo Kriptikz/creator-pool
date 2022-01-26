@@ -1,5 +1,6 @@
 [programs.localnet]
-creator_pool = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+creator_pool = "E3mHBkUKFf1hhXN6YEG3oXD5G8SZkvVfoRQ4TNQewqYJ"
+base_staking = "64TUcqgGwshsuCVj1wpP53TFE6sSoFP8SoDhKA2y2Kea"
 
 [registry]
 url = "https://anchor.projectserum.com"
