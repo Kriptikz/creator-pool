@@ -104,7 +104,7 @@ pub mod creator_pool {
                 token::Transfer {
                     from: ctx.accounts.staking_vault.to_account_info(),
                     to: ctx.accounts.stake_from_account.to_account_info(),
-                    authority: ctx.accounts.staking_vault.to_account_info(),
+                    authority: ctx.accounts.pool_signer.to_account_info(),
                 },
                 pool_signer,
             );
