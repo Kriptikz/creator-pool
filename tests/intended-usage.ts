@@ -319,6 +319,11 @@ describe('intended-usage', () => {
     await claimPoolRewards(user2, user2UserAccountAddress, user2RewardTokenAccount, "User2");
   });
 
+  it ('User1 Unstakes from Creator Pool', async () => {
+    await unstakeFullProcess(user1, user1UserAccountAddress, user1TokenAAccount, user1xTokenAAccount);
+    await printUserTokenBalances(user1TokenAAccount, user1xTokenAAccount, user1RewardTokenAccount, "User1");
+  });
+
 
   // ------------------------------------------------------------------------------
   // |                          Utility Functions                                 |
@@ -516,6 +521,64 @@ describe('intended-usage', () => {
 
     return USER_X_TOKENS_FOR_STAKE;
   }
+
+  async function unstakeFullProcess(user, userUserAccountAddress, userTokenAAccount, userxTokenAAccount) {
+    // First the users Tokens will be unstaked from the creators pool
+    let stakedToPoolAmount = (await creatorPoolProgram.account.user.fetch(userUserAccountAddress)).balanceStaked;
+
+    await provider.connection.confirmTransaction(
+      await creatorPoolProgram.rpc.unstake(
+        new anchor.BN(stakedToPoolAmount),
+        {
+          accounts: {
+            pool: pool1Keypair.publicKey,
+            stakingVault: pool1StakeVault,
+            user: userUserAccountAddress,
+            owner: user.publicKey,
+            stakeFromAccount: userxTokenAAccount,
+            poolSigner: pool1Signer,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          },
+          signers: [user]
+        }
+      ),
+      "confirmed"
+    );
+
+    await unstakexTokensFromBaseStakingProgram(user, userTokenAAccount, userxTokenAAccount);
+  }
+
+  async function unstakexTokensFromBaseStakingProgram(user, userTokenAAccount, userxTokenAAccount) {
+
+    // Calculate amount of xTokens they recieve for staking
+    const TOTAL_STAKE_AMOUNT = (await mintA.getAccountInfo(pdaStakeVaultTokenAAddress)).amount.toNumber();
+    const TOTAL_MINTED_XTOKENS = (await xMintA.getMintInfo()).supply.toNumber();
+
+    const AMOUNT_TO_UNSTAKE = (await xMintA.getAccountInfo(userxTokenAAccount)).amount.toNumber();
+    const AMOUNT_FOR_UNSTAKE = calculateTokensForUnstake(AMOUNT_TO_UNSTAKE, TOTAL_STAKE_AMOUNT, TOTAL_MINTED_XTOKENS);
+    TOTAL_BASE_STAKE_VAULT_AMOUNT -= AMOUNT_FOR_UNSTAKE;
+
+    await provider.connection.confirmTransaction(
+      await baseStakingProgram.rpc.unstake(
+        pdaStakeVaultTokenABump,
+        new anchor.BN(AMOUNT_TO_UNSTAKE),
+        {
+          accounts: {
+            xMint: pdaxMintAAddress,
+            mint: mintA.publicKey,
+            staker: user.publicKey,
+            stakerTokenAccount: userTokenAAccount,
+            stakerXTokenAccount: userxTokenAAccount,
+            stakeVault: pdaStakeVaultTokenAAddress,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          },
+          signers: [user]
+        }
+      )
+    );
+  }
+
+
 
   async function creatorSendsRewards(poolKeypair, poolStakeVault, poolRewardVault, creator, creatorRewardTokenAccount, poolSigner) {
     await provider.connection.confirmTransaction(
