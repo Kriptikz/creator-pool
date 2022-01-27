@@ -418,6 +418,29 @@ describe('creator-pool', () => {
     console.log("User Reward Tokens: ", userRewardTokens.toNumber() / (10 ** DECIMALS));
   });
 
+  it('User1 Unstakes all from Pool1', async () => {
+    let stakedToPoolAmount = (await program.account.user.fetch(user1UserAccountAddress)).balanceStaked
+
+    await provider.connection.confirmTransaction(
+      await program.rpc.unstake(
+        new anchor.BN(stakedToPoolAmount),
+        {
+          accounts: {
+            pool: pool1Keypair.publicKey,
+            stakingVault: pool1StakeVault,
+            user: user1UserAccountAddress,
+            owner: user1.publicKey,
+            stakeFromAccount: user1StakingTokenAccount,
+            poolSigner: pool1Signer,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          },
+          signers: [user1]
+        }
+      ),
+      "confirmed"
+    );
+  });
+
 
   // Utility Functions
   async function printUserAccountData(userAccountAddress) {
