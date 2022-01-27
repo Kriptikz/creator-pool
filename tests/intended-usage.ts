@@ -20,6 +20,10 @@ describe('intended-usage', () => {
   // Initial Mint amount
   const MINT_A_AMOUNT = 10000 * 10 ** DECIMALS;
 
+  // Inflation Distributer
+  const inflationDistibuter = anchor.web3.Keypair.generate();
+  let inflationDistributerTokenAAccount;
+
   // User Keypair
   const user1 = anchor.web3.Keypair.generate();
   const user2 = anchor.web3.Keypair.generate();
@@ -28,7 +32,7 @@ describe('intended-usage', () => {
   const user5 = anchor.web3.Keypair.generate();
 
   // PoolCreator Keypair
-  const poolCreator = anchor.web3.Keypair.generate();
+  const pool1Creator = anchor.web3.Keypair.generate();
 
   // Pool Keypair
   const pool1Keypair = anchor.web3.Keypair.generate();
@@ -87,7 +91,7 @@ describe('intended-usage', () => {
   let user5UserAccountAddress;
   let user5UserAccountNonce;
 
-  let poolCreatorRewardTokenAccount;
+  let pool1CreatorRewardTokenAccount;
 
   // Program Token Stake Vault PDA
   let pdaStakeVaultTokenAAddress;
@@ -130,7 +134,7 @@ describe('intended-usage', () => {
     user3RewardTokenAccount = await mintRewardToken.createAssociatedTokenAccount(user3.publicKey);
     user4RewardTokenAccount = await mintRewardToken.createAssociatedTokenAccount(user4.publicKey);
     user5RewardTokenAccount = await mintRewardToken.createAssociatedTokenAccount(user5.publicKey);
-    poolCreatorRewardTokenAccount = await mintRewardToken.createAssociatedTokenAccount(poolCreator.publicKey);
+    pool1CreatorRewardTokenAccount = await mintRewardToken.createAssociatedTokenAccount(pool1Creator.publicKey);
 
     // Create our users Mint A Token Accounts
     user1TokenAAccount = await mintA.createAssociatedTokenAccount(user1.publicKey);
@@ -138,6 +142,17 @@ describe('intended-usage', () => {
     user3TokenAAccount = await mintA.createAssociatedTokenAccount(user3.publicKey);
     user4TokenAAccount = await mintA.createAssociatedTokenAccount(user4.publicKey);
     user5TokenAAccount = await mintA.createAssociatedTokenAccount(user5.publicKey);
+
+    // Create our inflationDistributer Account
+    inflationDistributerTokenAAccount = await mintA.createAssociatedTokenAccount(inflationDistibuter.publicKey);
+
+    // Mint Token A to infaltionDistributer
+    await mintA.mintTo(
+      inflationDistributerTokenAAccount,
+      mintAuthority.publicKey,
+      [mintAuthority],
+      500_000_000 * (10 ** DECIMALS),
+    );
 
     // Mint some Token A to users
     await mintToUser(user1TokenAAccount, mintA, MINT_A_AMOUNT);
@@ -148,7 +163,9 @@ describe('intended-usage', () => {
 
     // Mint Reward Tokens to our poolCreator
     const AMOUNT_OF_REWARD_TOKENS_TO_MINT = 5000 * (10 ** DECIMALS);
-    await mintRewardToken.mintTo(poolCreatorRewardTokenAccount, mintAuthority, [], AMOUNT_OF_REWARD_TOKENS_TO_MINT);
+    await mintRewardToken.mintTo(pool1CreatorRewardTokenAccount, mintAuthority, [], AMOUNT_OF_REWARD_TOKENS_TO_MINT);
+
+    await printCreatorTokenBalance(pool1CreatorRewardTokenAccount);
 
 
     // Find our Stake Vault PDA
@@ -162,6 +179,9 @@ describe('intended-usage', () => {
       [Buffer.from("x-mint"), mintA.publicKey.toBuffer()],
       baseStakingProgram.programId,
     );
+
+    // Find our users UserAccount PDA's
+    await findUsersUserAccounts();
   });
 
   it('Initialize xToken Mint', async () => {
@@ -214,7 +234,7 @@ describe('intended-usage', () => {
     pool1RewardVault = await mintRewardToken.createAccount(pool1Signer);
 
 
-    let poolCreatorBalanceBefore = await provider.connection.getBalance(poolCreator.publicKey);
+    let poolCreatorBalanceBefore = await provider.connection.getBalance(pool1Creator.publicKey);
 
     await provider.connection.confirmTransaction(
       await creatorPoolProgram.rpc.initializePool(
@@ -222,7 +242,7 @@ describe('intended-usage', () => {
         new anchor.BN(1),
         {
           accounts: {
-            authority: poolCreator.publicKey,
+            authority: pool1Creator.publicKey,
             stakingMint: xMintA.publicKey,
             stakingVault: pool1StakeVault,
             rewardMint: mintRewardToken.publicKey,
@@ -232,7 +252,7 @@ describe('intended-usage', () => {
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: anchor.web3.SystemProgram.programId,
           },
-          signers: [pool1Keypair, poolCreator]
+          signers: [pool1Keypair, pool1Creator]
         }
       ),
       "confirmed"
@@ -240,72 +260,65 @@ describe('intended-usage', () => {
 
     await printPoolAccountData(pool1Keypair.publicKey);
 
-    let poolCreatorBalanceAfter = await provider.connection.getBalance(poolCreator.publicKey);
+    let poolCreatorBalanceAfter = await provider.connection.getBalance(pool1Creator.publicKey);
     console.log("Pool Account Creation Cost: ", (poolCreatorBalanceBefore - poolCreatorBalanceAfter) / anchor.web3.LAMPORTS_PER_SOL);
 
   });
 
   it('Creates a User Account for User1', async () => {
-    [user1UserAccountAddress, user1UserAccountNonce] = await anchor.web3.PublicKey.findProgramAddress(
-      [user1.publicKey.toBuffer(), pool1Keypair.publicKey.toBuffer()],
-      creatorPoolProgram.programId
-    )
-
-    await provider.connection.confirmTransaction(
-      await creatorPoolProgram.rpc.createUser(
-        user1UserAccountNonce,
-        {
-          accounts: {
-            pool: pool1Keypair.publicKey,
-            user: user1UserAccountAddress,
-            owner: user1.publicKey,
-            systemProgram: anchor.web3.SystemProgram.programId,
-          },
-          signers: [user1]
-        }
-      ),
-      "confirmed"
-    );
-
-    await printUserAccountData(user1UserAccountAddress);
+    await createUserAccount(user1, user1UserAccountNonce, user1UserAccountAddress, pool1Keypair);
+    await printUserAccountData(user1UserAccountAddress, "User1");
 
   });
 
   it('User1 Stakes 200 tokens', async () => {
     const amountToStakeToBaseProgram = 200;
-    // First the users Tokens will be staked to the base-staking program
-    await stakeTokensToBaseStakingProgram(user1, user1TokenAAccount, user1xTokenAAccount, 200);
+    // User stakes to the base-staking program, and the creators pool
+    await stakeFullProcess(user1, user1UserAccountAddress, user1TokenAAccount, user1xTokenAAccount, amountToStakeToBaseProgram);
+    
+        // Print useful logging info
+    await printUserAccountData(user1UserAccountAddress, "User1");
+    await printPoolAccountData(pool1Keypair.publicKey);
+    await printUserTokenBalances(user1TokenAAccount, user1xTokenAAccount, user1RewardTokenAccount, "User1");
+  });
 
-    // Calculate amount of xTokens they recieve for staking
-    const TOTAL_STAKE_AMOUNT = (await mintA.getAccountInfo(pdaStakeVaultTokenAAddress)).amount.toNumber();
-    const TOTAL_MINTED_XTOKENS = (await xMintA.getMintInfo()).supply.toNumber();
-    let USER_X_TOKENS_FOR_STAKE = amountToStakeToBaseProgram;
-    if (TOTAL_STAKE_AMOUNT != 0 && TOTAL_MINTED_XTOKENS != 0) {
-     USER_X_TOKENS_FOR_STAKE = calculateXTokensForStake(amountToStakeToBaseProgram, TOTAL_STAKE_AMOUNT, TOTAL_MINTED_XTOKENS);
-    };
+  it('11% APY Inflation Rewards Deposited to Stake Vault', async () => {
+    // Calculate 11% APY of base-staking vault
+    let stakeVaultAmount = (await mintA.getAccountInfo(pdaStakeVaultTokenAAddress)).amount.toNumber();
+    let yearlyAmount = Math.floor(0.11 * stakeVaultAmount);
+    let depositAmount = Math.floor((yearlyAmount / 12)) / (10 ** DECIMALS);
+    console.log("Deposit Amount: ", depositAmount);
 
-    await provider.connection.confirmTransaction(
-      await creatorPoolProgram.rpc.stake(
-        new anchor.BN(USER_X_TOKENS_FOR_STAKE * (10 ** DECIMALS)),
-        {
-          accounts: {
-            pool: pool1Keypair.publicKey,
-            stakingVault: pool1StakeVault,
-            user: user1UserAccountAddress,
-            owner: user1.publicKey,
-            stakeFromAccount: user1xTokenAAccount,
-            poolSigner: pool1Signer,
-            tokenProgram: TOKEN_PROGRAM_ID,
-          },
-          signers: [user1]
-        }
-      ),
-      "confirmed"
-    );
-
-    await printUserAccountData(user1UserAccountAddress);
+    await depositInflationRewards(depositAmount);
     await printPoolAccountData(pool1Keypair.publicKey);
   });
+
+  it('User2 Stakes 400 tokens - first time', async () => {
+    const amountToStakeToBaseProgram = 400;
+    // Need to create the UserAccount on first stake
+    await createUserAccount(user2, user2UserAccountNonce, user2UserAccountAddress, pool1Keypair);
+    
+    // User stakes to the base-staking program, and the creators pool
+    await stakeFullProcess(user2, user2UserAccountAddress, user2TokenAAccount, user2xTokenAAccount, amountToStakeToBaseProgram);
+    
+    // Print useful logging info
+    await printUserAccountData(user2UserAccountAddress, "User2");
+    await printPoolAccountData(pool1Keypair.publicKey);
+    await printUserTokenBalances(user2TokenAAccount, user2xTokenAAccount, user2RewardTokenAccount, "User2");
+  });
+
+  it('Creator sends rewards to pool', async () => {
+    await creatorSendsRewards(pool1Keypair, pool1StakeVault, pool1RewardVault, pool1Creator, pool1CreatorRewardTokenAccount, pool1Signer);
+  });
+
+  it('User1 Claims Rewards', async () => {
+    await claimPoolRewards(user1, user1UserAccountAddress, user1RewardTokenAccount, "User1");
+  });
+
+  it('User2 Claims Rewards', async () => {
+    await claimPoolRewards(user2, user2UserAccountAddress, user2RewardTokenAccount, "User2");
+  });
+
 
   // ------------------------------------------------------------------------------
   // |                          Utility Functions                                 |
@@ -324,6 +337,24 @@ describe('intended-usage', () => {
     assert.equal(userTokenAmount, MINT_A_AMOUNT);
   }
 
+  async function depositInflationRewards(amount) {
+    const AMOUNT_TO_REWARD = amount * (10 ** DECIMALS);
+    TOTAL_BASE_STAKE_VAULT_AMOUNT += AMOUNT_TO_REWARD;
+
+    await mintA.transfer(
+      inflationDistributerTokenAAccount,
+      pdaStakeVaultTokenAAddress,
+      inflationDistibuter,
+      [],
+      AMOUNT_TO_REWARD,
+    );
+    
+    // Get the amount of Tokens in the Stake Vault
+    let pdaStakeVaultTokenAAmount = (await mintA.getAccountInfo(pdaStakeVaultTokenAAddress)).amount.toNumber();
+    console.log("Stake Vault Amount: ", pdaStakeVaultTokenAAmount / (10 ** DECIMALS));
+    assert.equal(pdaStakeVaultTokenAAmount, TOTAL_BASE_STAKE_VAULT_AMOUNT);
+  }
+
   async function testSetUpAirdrop() {
     // Airdrop 5 Sol to payer, mintAuthority, poolCreator, and users
     await provider.connection.confirmTransaction(
@@ -335,7 +366,7 @@ describe('intended-usage', () => {
       "confirmed"
     );
     await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(poolCreator.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
+      await provider.connection.requestAirdrop(pool1Creator.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
       "confirmed"
     );
     await provider.connection.confirmTransaction(
@@ -358,15 +389,37 @@ describe('intended-usage', () => {
       await provider.connection.requestAirdrop(user5.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
       "confirmed"
     );
+    await provider.connection.confirmTransaction(
+      await provider.connection.requestAirdrop(inflationDistibuter.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
+      "confirmed"
+    );
   }
 
-  async function printUserAccountData(userAccountAddress) {
+  async function printUserTokenBalances(userTokenAccount, userXTokenAccount, userRewardTokenAccount, userAsString) {
+    let tokenBalance = (await mintA.getAccountInfo(userTokenAccount)).amount.toNumber();
+    let xTokenBalance = (await xMintA.getAccountInfo(userXTokenAccount)).amount.toNumber();
+    let rewardBalance = (await mintRewardToken.getAccountInfo(userRewardTokenAccount)).amount.toNumber();
+
+    console.log(`-----${userAsString} Token Balances -----`);
+    console.log("Token A Balance: ", tokenBalance / (10 ** DECIMALS));
+    console.log("xToken Balance: ", xTokenBalance / (10 ** DECIMALS));
+    console.log("Reward Token Balance: ", rewardBalance / (10 ** DECIMALS));
+  }
+
+  async function printCreatorTokenBalance(tokenAccount) {
+    let rewardsBalance = (await mintRewardToken.getAccountInfo(tokenAccount)).amount.toNumber();
+    console.log("----- Pool Creator Token Balance ----- ");
+    console.log("Reward Tokens: ", rewardsBalance / (10 ** DECIMALS));
+  }
+
+  async function printUserAccountData(userAccountAddress, userAsString) {
     let userAccount = await creatorPoolProgram.account.user.fetch(userAccountAddress);
     let poolPubkey = userAccount.pool.toString();
     let owner = userAccount.owner.toString();
     let balanceStaked = userAccount.balanceStaked.toNumber();
 
-    console.log("------ User Account Data ------");
+
+    console.log(`------ ${userAsString} Account Data ------`);
     console.log("Pool Pubkey: ", poolPubkey);
     console.log("owner: ", owner);
     console.log("Balance Staked: ", balanceStaked / (10 ** DECIMALS));
@@ -393,6 +446,30 @@ describe('intended-usage', () => {
     console.log("Reward Amount: ", rewardAmount / (10 ** DECIMALS));
     console.log("Users Staked: ", usersStaked);
 
+  }
+
+  async function stakeFullProcess(user, userUserAccountAddress, userTokenAAccount, userxTokenAAccount, baseAmount) {
+    // First the users Tokens will be staked to the base-staking program
+    let xTokensReceived = await stakeTokensToBaseStakingProgram(user, userTokenAAccount, userxTokenAAccount, baseAmount);
+
+    await provider.connection.confirmTransaction(
+      await creatorPoolProgram.rpc.stake(
+        new anchor.BN(xTokensReceived),
+        {
+          accounts: {
+            pool: pool1Keypair.publicKey,
+            stakingVault: pool1StakeVault,
+            user: userUserAccountAddress,
+            owner: user.publicKey,
+            stakeFromAccount: userxTokenAAccount,
+            poolSigner: pool1Signer,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          },
+          signers: [user]
+        }
+      ),
+      "confirmed"
+    );
   }
 
   async function stakeTokensToBaseStakingProgram(user, userTokenAAccount, userxTokenAAccount, amount) {
@@ -436,6 +513,103 @@ describe('intended-usage', () => {
     console.log("Stake Vault Token Amount: ", pdaStakeVaultTokenAAmount / (10 ** DECIMALS));
     assert.equal(pdaStakeVaultTokenAAmount, TOTAL_BASE_STAKE_VAULT_AMOUNT);
 
+
+    return USER_X_TOKENS_FOR_STAKE;
+  }
+
+  async function creatorSendsRewards(poolKeypair, poolStakeVault, poolRewardVault, creator, creatorRewardTokenAccount, poolSigner) {
+    await provider.connection.confirmTransaction(
+      await creatorPoolProgram.rpc.fund(
+        new anchor.BN(1000 * (10 ** DECIMALS)),
+        {
+          accounts: {
+            pool: poolKeypair.publicKey,
+            stakingVault: poolStakeVault,
+            rewardVault: poolRewardVault,
+            funder: creator.publicKey,
+            from: creatorRewardTokenAccount,
+            poolSigner: poolSigner,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          },
+          signers: [creator]
+        }
+      ),
+      "confirmed"
+    );
+    await printCreatorTokenBalance(creatorRewardTokenAccount);
+    await printPoolAccountData(poolKeypair.publicKey);
+
+    // Wait for Funds to be distributed
+    await wait(1);
+  }
+
+  async function claimPoolRewards(user, userUserAccountAddress, userRewardTokenAccount, userAsString) {
+    
+    await provider.connection.confirmTransaction(
+      await creatorPoolProgram.rpc.claimReward(
+        {
+          accounts: {
+            pool: pool1Keypair.publicKey,
+            stakingVault: pool1StakeVault,
+            rewardVault: pool1RewardVault,
+            user: userUserAccountAddress,
+            owner: user.publicKey,
+            toRewardAccount: userRewardTokenAccount,
+            poolSigner: pool1Signer,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          },
+          signers: [user]
+        }
+      ),
+      "confirmed"
+    );
+
+    await printUserAccountData(userUserAccountAddress, userAsString);
+    await printPoolAccountData(pool1Keypair.publicKey);
+
+    let userRewardTokens = (await mintRewardToken.getAccountInfo(userRewardTokenAccount)).amount;
+    console.log(`${userAsString} Reward Tokens: `, userRewardTokens.toNumber() / (10 ** DECIMALS));
+  }
+
+  async function findUsersUserAccounts() {
+    [user1UserAccountAddress, user1UserAccountNonce] = await anchor.web3.PublicKey.findProgramAddress(
+      [user1.publicKey.toBuffer(), pool1Keypair.publicKey.toBuffer()],
+      creatorPoolProgram.programId
+    );
+    [user2UserAccountAddress, user2UserAccountNonce] = await anchor.web3.PublicKey.findProgramAddress(
+      [user2.publicKey.toBuffer(), pool1Keypair.publicKey.toBuffer()],
+      creatorPoolProgram.programId
+    );
+    [user3UserAccountAddress, user3UserAccountNonce] = await anchor.web3.PublicKey.findProgramAddress(
+      [user3.publicKey.toBuffer(), pool1Keypair.publicKey.toBuffer()],
+      creatorPoolProgram.programId
+    );
+    [user4UserAccountAddress, user4UserAccountNonce] = await anchor.web3.PublicKey.findProgramAddress(
+      [user4.publicKey.toBuffer(), pool1Keypair.publicKey.toBuffer()],
+      creatorPoolProgram.programId
+    );
+    [user5UserAccountAddress, user5UserAccountNonce] = await anchor.web3.PublicKey.findProgramAddress(
+      [user5.publicKey.toBuffer(), pool1Keypair.publicKey.toBuffer()],
+      creatorPoolProgram.programId
+    );
+  }
+
+  async function createUserAccount(user, userUserAccountNonce, userUserAccountAddress, poolKeypair) {
+    await provider.connection.confirmTransaction(
+      await creatorPoolProgram.rpc.createUser(
+        userUserAccountNonce,
+        {
+          accounts: {
+            pool: poolKeypair.publicKey,
+            user: userUserAccountAddress,
+            owner: user.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+          },
+          signers: [user]
+        }
+      ),
+      "confirmed"
+    );
   }
 
   function calculateXTokensForStake(amountToStake, totalStakeAmount, totalMintedXTokens) {
