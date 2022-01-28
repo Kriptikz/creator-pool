@@ -4,3 +4,7 @@
 target
 **/*.rs.bk
 node_modules
+app/idl
+app/keys
+
+
