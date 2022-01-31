@@ -333,29 +333,29 @@ pub struct ClaimReward<'info> {
 #[derive(Default)]
 pub struct Pool {
     // Priviledged account
-    authority: Pubkey,
+    authority: Pubkey,              //32
     // Nonce to derive the PDA owning the vaults
-    nonce: u8,
+    nonce: u8,                      //1
     // Mint of the token that can be staked
-    staking_mint: Pubkey,
+    staking_mint: Pubkey,           //32
     // Vault to store staked tokens
-    staking_vault: Pubkey,
+    staking_vault: Pubkey,          //32
     // Mint of the reward token
-    reward_mint: Pubkey,
+    reward_mint: Pubkey,            //32
     // Vault to store reward tokens
-    reward_vault: Pubkey,
+    reward_vault: Pubkey,           //32
     // The period which rewards are linearly distributed
-    reward_duration: u64,
+    reward_duration: u64,           //8
     // The timestamp at which the current reward period ends
-    reward_duration_end: u64,
+    reward_duration_end: u64,       //8
     // The last time reward states were updated
-    last_update_time: u64,
+    last_update_time: u64,          //8
     // Rate of reward distribution
-    reward_rate: u64,
+    reward_rate: u64,               //8
     // Last calculated reward per pool token
-    reward_per_token_stored: u128,
+    reward_per_token_stored: u128,  //16
     // Users staked
-    user_stake_count: u32,
+    user_stake_count: u32,          // 4
 }
 
 impl Pool {
@@ -480,17 +480,17 @@ impl Pool {
 #[derive(Default)]
 pub struct User {
     // The pool this user belongs to
-    pool: Pubkey,
+    pool: Pubkey,                     //32 
     // The owner of this account
-    owner: Pubkey,
+    owner: Pubkey,                    //32
     // The amount of reward tokens claimed
-    reward_per_token_complete: u128,
+    reward_per_token_complete: u128,  // 16
     // The amount of reward tokens pending claim
-    reward_per_token_pending: u64,
+    reward_per_token_pending: u64,    // 8
     // The amount staked
-    balance_staked: u64,
+    balance_staked: u64,              // 8
     // Signer nonce
-    nonce: u8,
+    nonce: u8,                        // 1
 }
 
 #[error]
