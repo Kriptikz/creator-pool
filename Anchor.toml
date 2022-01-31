@@ -6,7 +6,7 @@ base_staking = "64TUcqgGwshsuCVj1wpP53TFE6sSoFP8SoDhKA2y2Kea"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "/home/kriptikz/.config/solana/id.json"
 
 [scripts]

@@ -268,6 +268,10 @@ describe('intended-usage', () => {
   it('Creates a User Account for User1', async () => {
     await createUserAccount(user1, user1UserAccountNonce, user1UserAccountAddress, pool1Keypair);
     await printUserAccountData(user1UserAccountAddress, "User1");
+    let userAccountBalance = await provider.connection.getBalance(user1UserAccountAddress);
+    console.log("User Account Balance: ", userAccountBalance / anchor.web3.LAMPORTS_PER_SOL);
+    let userTokenSolBalance = await provider.connection.getBalance(user1TokenAAccount);
+    console.log("User Token Account Sol Account Balance: ", userTokenSolBalance / anchor.web3.LAMPORTS_PER_SOL);
 
   });
 
@@ -382,18 +386,18 @@ describe('intended-usage', () => {
       await provider.connection.requestAirdrop(user2.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
       "confirmed"
     );
-    await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(user3.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
-      "confirmed"
-    );
-    await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(user4.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
-      "confirmed"
-    );
-    await provider.connection.confirmTransaction(
-      await provider.connection.requestAirdrop(user5.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
-      "confirmed"
-    );
+    //await provider.connection.confirmTransaction(
+    //  await provider.connection.requestAirdrop(user3.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
+    //  "confirmed"
+    //);
+    //await provider.connection.confirmTransaction(
+    //  await provider.connection.requestAirdrop(user4.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
+    //  "confirmed"
+    //);
+    //await provider.connection.confirmTransaction(
+    //  await provider.connection.requestAirdrop(user5.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
+    //  "confirmed"
+    //);
     await provider.connection.confirmTransaction(
       await provider.connection.requestAirdrop(inflationDistibuter.publicKey, 5 * anchor.web3.LAMPORTS_PER_SOL),
       "confirmed"
