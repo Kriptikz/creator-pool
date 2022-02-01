@@ -34,18 +34,17 @@ import { FundPoolRewards } from '../components/creator-pool/FundPoolRewards';
 import { InitializePool } from '../components/creator-pool/InitializePool';
 import { StakeToPool } from '../components/creator-pool/StakeToPool';
 import { UnstakeFromPool } from '../components/creator-pool/UnstakeFromPool';
-import { GetStakedAmount } from '../components/creator-pool/GetStakedAmount';
 import Link from 'next/link';
 import pkg from '../package.json';
 
-const Index: NextPage = () => {
+const Usage: NextPage = () => {
     const { autoConnect, setAutoConnect } = useAutoConnect();
 
     return (
         <Table>
             <TableHead>
-                <TableRow>
-                    <TableCell sx={{minWidth: 100}}>
+            <TableRow>
+            <TableCell sx={{minWidth: 100}}>
                         <h1>
                             <Link href="/">
                                 <a>Home</a>
@@ -110,18 +109,14 @@ const Index: NextPage = () => {
                     <TableCell></TableCell>
                 </TableRow>
                 <TableRow>
-                    <TableCell>Base-Staking</TableCell>
+                    <TableCell></TableCell>
                     <TableCell>
-                        <Mint />
                     </TableCell>
                     <TableCell>
-                        <InitializeXMint />
                     </TableCell>
                     <TableCell>
-                        <CreateXTokenAccount />
                     </TableCell>
                     <TableCell>
-                        <SendStakingReward />                     
                     </TableCell>
                     <TableCell>
                     </TableCell>
@@ -129,29 +124,22 @@ const Index: NextPage = () => {
                 <TableRow>
                     <TableCell></TableCell>
                     <TableCell>
-                        <StakeForXToken />
                     </TableCell>
                     <TableCell>
-                        <UnstakeAllXToken />
                     </TableCell>
                     <TableCell>
-                        <UnstakeByXTokenAmount />
                     </TableCell>
                     <TableCell>
-                        <UnstakeByTokenAmount />
                     </TableCell>
                     <TableCell></TableCell>
                 </TableRow>
                 <TableRow>
-                    <TableCell>Creator-Pool</TableCell>
+                    <TableCell></TableCell>
                     <TableCell>
-                        <InitializePool />
                     </TableCell>
                     <TableCell>
-                        <CreatePoolUserAccount />
                     </TableCell>
                     <TableCell>
-                        <FundPoolRewards />
                     </TableCell>
                     <TableCell></TableCell>
                     <TableCell></TableCell>
@@ -159,41 +147,13 @@ const Index: NextPage = () => {
                 <TableRow>
                     <TableCell></TableCell>
                     <TableCell>
-                        <GetStakedAmount />
                     </TableCell>
                     <TableCell>
-                        <StakeToPool />
                     </TableCell>
                     <TableCell>
-                        <UnstakeFromPool />
                     </TableCell>
                     <TableCell>
-                        <ClaimRewards />
                     </TableCell>
-                    <TableCell></TableCell>
-                </TableRow>
-                <TableRow>
-                    <TableCell>Hard-Coded PubKeys</TableCell>
-                    <TableCell>
-                        Pool Creator:
-                        <br/>
-                        <input type="text" id="pubKeys" value="AnDN8EjC512BaHYUM8rQ2d3MyL63b9U4JK5bF1TArLfg"/>
-                        </TableCell>
-                    <TableCell>
-                        Pool: 
-                        <br/>
-                        <input type="text" id="pubKeys" value="DN3EZ9AabnuvrbkeZEJQL3W8htbXFJWjH81Ax9X9JKxd"/>
-                        </TableCell>
-                    <TableCell>
-                        StakeVault: 
-                        <br/>
-                        <input type="text" id="pubKeys" value="Bo6dK2AWro91FpU3xvmVwYkcfRDmkdyCUMa2LyshVJ35"/>
-                        </TableCell>
-                    <TableCell>
-                        RewardVault:
-                        <br/>
-                        <input type="text" id="pubKeys" value="3hVqqF8UmqbE6qj5gPT3BBae9uVN2URuA3QAySXcuqAw"/>
-                        </TableCell>
                     <TableCell></TableCell>
                 </TableRow>
             </TableBody>
@@ -201,4 +161,4 @@ const Index: NextPage = () => {
     );
 };
 
-export default Index;
+export default Usage;

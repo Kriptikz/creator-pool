@@ -2,12 +2,13 @@ import { Button, Tooltip } from '@mui/material';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction, TransactionSignature} from '@solana/web3.js';
 import { Token, TOKEN_PROGRAM_ID, MintLayout, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { FC, useCallback } from 'react';
+import { FC, useCallback, useState } from 'react';
 import * as anchor from '@project-serum/anchor';
 import idl from '../../idl/base_staking.json';
 import { useNotify } from '../notify';
 
 export const SendStakingReward: FC = () => {
+    const [inputAmount, setInputAmount] = useState(0);
     const { connection } = useConnection();
     const { publicKey, sendTransaction } = useWallet();
     const notify = useNotify();
@@ -65,13 +66,22 @@ export const SendStakingReward: FC = () => {
             notify('error', `Transaction failed! ${error?.message}`, signature);
             return;
         }
-    }, [publicKey, notify, connection, sendTransaction]);
+    }, [publicKey, notify, connection, sendTransaction, inputAmount]);
+
+    function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        console.log("Submitted amount", inputAmount);
+        onClick();
+    }
 
     return (
-        <Tooltip title="Sends staking rewards to the base-staking programs vault" placement="top">
-            <Button variant="contained" color="secondary" onClick={onClick} disabled={!publicKey}>
-                Send Staking Reward
-            </Button>
-        </Tooltip>
+        <form onSubmit={onSubmit}>
+            <label>
+                Amount:
+                <input type="text" size={3} value={inputAmount} onChange={e => setInputAmount(Number(e.target.value))} style={{color: 'black'}} disabled={!publicKey}/>
+                <br/>
+            </label>
+            <input type="submit" value="Send Rewards" id="submit" disabled={!publicKey}/>
+        </form>
     );
 };

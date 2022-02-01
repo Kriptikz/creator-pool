@@ -56,7 +56,7 @@ export const Mint: FC = () => {
                     ATA,
                     publicKey,
                     [],
-                    1000 * (10 ** DECIMALS)
+                    100_000 * (10 ** DECIMALS)
                 )
                 
             );
@@ -73,7 +73,7 @@ export const Mint: FC = () => {
     }, [publicKey, notify, connection, sendTransaction]);
 
     return (
-        <Tooltip title="Creates a Mint and mints 1000 tokens to wallet" placement="top">
+        <Tooltip title="Creates a Mint and mints 100_000 tokens to wallet" placement="top">
             <Button variant="contained" color="secondary" onClick={onClick} disabled={!publicKey}>
                 Mint
             </Button>

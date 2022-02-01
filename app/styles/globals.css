@@ -16,3 +16,23 @@ a {
 * {
   box-sizing: border-box;
 }
+
+input#submit {
+  background-color: rgb(194 24 91);
+  border: none;
+  border-radius: 4px;
+}
+
+input#submit:hover {
+  cursor: pointer;
+}
+
+input#submit:disabled {
+  background: #404144;
+  color: #999;
+}
+
+input#pubKeys {
+  color: black;
+  size: 16;
+}

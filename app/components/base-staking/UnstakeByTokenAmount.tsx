@@ -100,9 +100,10 @@ export const UnstakeByTokenAmount: FC = () => {
         <form onSubmit={onSubmit}>
             <label>
                 Token Amount:
-                <input type="text" size={3} value={inputAmount} onChange={e => setInputAmount(Number(e.target.value))} style={{color: 'black'}}/>
+                <input type="text" size={3} value={inputAmount} onChange={e => setInputAmount(Number(e.target.value))} style={{color: 'black'}} disabled={!publicKey}/>
+                <br/>
             </label>
-            <input type="submit" value="Unstake" style={{color: 'black'}}/>
+            <input type="submit" value="Unstake" id="submit" disabled={!publicKey}/>
         </form>
     );
 };
