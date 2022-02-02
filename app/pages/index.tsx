@@ -177,22 +177,22 @@ const Index: NextPage = () => {
                     <TableCell>
                         Pool Creator:
                         <br/>
-                        <input type="text" id="pubKeys" value="AnDN8EjC512BaHYUM8rQ2d3MyL63b9U4JK5bF1TArLfg"/>
+                        <input type="text" id="pubKeys" defaultValue="AnDN8EjC512BaHYUM8rQ2d3MyL63b9U4JK5bF1TArLfg"/>
                         </TableCell>
                     <TableCell>
                         Pool: 
                         <br/>
-                        <input type="text" id="pubKeys" value="DN3EZ9AabnuvrbkeZEJQL3W8htbXFJWjH81Ax9X9JKxd"/>
+                        <input type="text" id="pubKeys" defaultValue="DN3EZ9AabnuvrbkeZEJQL3W8htbXFJWjH81Ax9X9JKxd"/>
                         </TableCell>
                     <TableCell>
                         StakeVault: 
                         <br/>
-                        <input type="text" id="pubKeys" value="Bo6dK2AWro91FpU3xvmVwYkcfRDmkdyCUMa2LyshVJ35"/>
+                        <input type="text" id="pubKeys" defaultValue="Bo6dK2AWro91FpU3xvmVwYkcfRDmkdyCUMa2LyshVJ35"/>
                         </TableCell>
                     <TableCell>
                         RewardVault:
                         <br/>
-                        <input type="text" id="pubKeys" value="3hVqqF8UmqbE6qj5gPT3BBae9uVN2URuA3QAySXcuqAw"/>
+                        <input type="text" id="pubKeys" defaultValue="3hVqqF8UmqbE6qj5gPT3BBae9uVN2URuA3QAySXcuqAw"/>
                         </TableCell>
                     <TableCell></TableCell>
                 </TableRow>
